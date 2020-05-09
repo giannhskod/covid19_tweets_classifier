@@ -231,4 +231,5 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # Custom Exceptions
-dat
+data/*
+.idea/
