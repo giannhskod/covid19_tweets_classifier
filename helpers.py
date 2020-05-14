@@ -3,6 +3,7 @@ import csv
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MultiLabelBinarizer
+import matplotlib.pyplot as plt
 
 def select_features_pca(train_X, test_X, k):
     selector = PCA(n_components=k)
@@ -62,3 +63,23 @@ def export_results(test_index,y_pred):
 	        lst = y_pred[i,:].tolist()
 	        lst.insert(0, idx)
 	        writer.writerow(lst)
+
+
+def plot(history):
+	# Plot training & validation accuracy values
+	plt.plot(history.history['accuracy'])
+	plt.plot(history.history['val_accuracy'])
+	plt.title('Model accuracy')
+	plt.ylabel('Accuracy')
+	plt.xlabel('Epoch')
+	plt.legend(['Train', 'Test'], loc='upper left')
+	plt.show()
+
+	# Plot training & validation loss values
+	plt.plot(history.history['loss'])
+	plt.plot(history.history['val_loss'])
+	plt.title('Model loss')
+	plt.ylabel('Loss')
+	plt.xlabel('Epoch')
+	plt.legend(['Train', 'Test'], loc='upper left')
+	plt.show()

@@ -45,7 +45,7 @@ mlp_model = models.MLP(train_x_sub)
 history = mlp_model.fit(
     train_x_sub,                      
     label_train,
-    epochs=200,
+    epochs=100,
     batch_size=64,
     verbose=0,
     validation_split=0.2
