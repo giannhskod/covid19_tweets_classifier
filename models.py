@@ -1,32 +1,27 @@
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Dropout, LSTM, Embedding, Flatten
 from keras import optimizers
+from keras import metrics
+from metrics import *
 
 def MLP(train_x_sub):
-    
-    n                       = train_x_sub.shape[1]
-    out_size                = 15
-    dense_size              = 512
-    nb_epoch                = 20
-    batch_size              = 256
-    print('Build model...')
-        
+    max_words = 1000
+    max_len = 150
     model = Sequential()
-    model.add(Dense(dense_size, input_dim=n, activation='relu'))
+    model.add(Embedding(max_words, 150, input_length = max_len))
+    model.add(Flatten())
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(dense_size, activation='relu'))
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(dense_size, activation='tanh'))
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(dense_size, activation='tanh'))
-    model.add(Dropout(0.2))
-    model.add(Dense(dense_size, activation='sigmoid'))
+    model.add(Dense(1024, activation='relu'))
     model.add(Dropout(0.2))
     model.add(Dense(15, activation='softmax'))
-    print(model.summary())
-    adam = optimizers.SGD(learning_rate=0.0005, momentum=0.0, nesterov=False)
+    model.summary()
     model.compile(loss='categorical_crossentropy',
-                  optimizer=adam,
-                  metrics=['accuracy'])
+              optimizer=optimizers.SGD(momentum=0.9,clipnorm=1.3),
+              metrics=['categorical_accuracy'])
 
     return model

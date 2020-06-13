@@ -67,8 +67,8 @@ def export_results(test_index,y_pred):
 
 def plot(history):
 	# Plot training & validation accuracy values
-	plt.plot(history.history['accuracy'])
-	plt.plot(history.history['val_accuracy'])
+	plt.plot(history.history['categorical_accuracy'])
+	plt.plot(history.history['val_categorical_accuracy'])
 	plt.title('Model accuracy')
 	plt.ylabel('Accuracy')
 	plt.xlabel('Epoch')
