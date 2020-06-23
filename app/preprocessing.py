@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import nltk
 import pickle
+import preprocessor
 
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
@@ -49,72 +50,43 @@ def text_centroid(text, model):
     return np.asarray(text_vec) / counter
 
 
-def preprocess_full_dataset(df):
+def custom_twitter_preprocess(df, custom=False):
     """
     The data preprocessing of the full dataset. The only extra preprocessing that is implemented
     to the dataset in case of the *tf_idf* model is the *stemming* of each word
     :param df (pandas.DataFrame):  The dataframe of the loaded Dataset
-    :param input_ins:
+    :param custom (Boolean): In case of true then user custom processing otherwise use the tweet-preprocess package.
     :return:
     """
 
     df["label"] = "__label__" + df["label"].astype(str)
     df["label"] = pd.Categorical(df.label)
+    if custom:
+        # convert text to lowercase
+        df["post"] = df["post"].str.lower()
 
-    # convert text to lowercase
-    df["post"] = df["post"].str.lower()
+        # remove numbers
+        df["post"] = df["post"].str.replace("[0-9]", " ")
 
-    # remove numbers
-    df["post"] = df["post"].str.replace("[0-9]", " ")
-
-    # # # remove stopwords
-    stop_words = stopwords.words("english")
-    df["post"] = df["post"].apply(
-        lambda text: " ".join(
-            [word.strip() for word in text.split() if word not in stop_words]
+        # # # remove stopwords
+        stop_words = stopwords.words("english")
+        df["post"] = df["post"].apply(
+            lambda text: " ".join(
+                [word.strip() for word in text.split() if word not in stop_words]
+            )
         )
-    )
 
-    # remove links
-    links_regex = (
-        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-    )
-    df["post"] = df["post"].apply(lambda text: re.sub(links_regex, "", text))
+        # remove links
+        links_regex = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+        df["post"] = df["post"].apply(lambda text: re.sub(links_regex, "", text))
 
-    # remove punctuation characters
-    punc_reqex = "[!,.:;-](?= |$)"
-    df["post"] = df["post"].apply(lambda text: re.sub(punc_reqex, r"", text))
+        # remove punctuation characters
+        punc_reqex = "[!,.:;-](?= |$)"
+        df["post"] = df["post"].apply(lambda text: re.sub(punc_reqex, r"", text))
+    else:
+        df["post"] = df["post"].apply(lambda text: preprocessor.clean(text))
 
     return df
-
-
-# Loading & Saving Data Methods
-def minimize_embeddings(input_data, emb_model, text_field, save=True):
-    """
-    Finds the embeddings of the words that exist in the <input_data>. If <save> is enabled
-    then it stores it in a pickle file.
-
-    :param input_data (pandas.DataFrame): The dataframe of the loaded Dataset,
-    :param emb_model (Word2Vec): the loaded vocabulary's embeddings.
-    :param text_field (str): The key name of the column that the test is contained,
-    :param save (bool):
-    :return (dic):
-
-    """
-    distinct_words = []
-    for text in input_data[text_field]:
-        sent_text = nltk.sent_tokenize(text)
-        for sentence in sent_text:
-            sent_tokenized = nltk.word_tokenize(sentence)
-            distinct_words += list(set(sent_tokenized))
-    distinct_words = list(set(distinct_words))
-    minimized = {word: emb_model[word] for word in distinct_words if word in emb_model}
-    if save:
-        minimized_path = os.path.join(DATA_DIR, MINIMIZED_EMBEDDINGS_FILENAME)
-        with open(minimized_path, "wb") as minimized_pickle:
-            pickle.dump(minimized, minimized_pickle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    return minimized
 
 
 def load_embeddings(load_from_pickle=True):
@@ -122,8 +94,6 @@ def load_embeddings(load_from_pickle=True):
     Reads and Loads the embeddings. If partial is enabled then it returns only the embedding for
     the words that is only used into the given <input_data>.
     :param input_data (pandas.DataFrame): The dataframe of the loaded Dataset,
-    :param text_field' (str): The key name of the column that the test is contained,
-    :param minimized (bool): If true, then load the minimized version of the embeddings,
 
     :return (dict or Word2Vec): It returns a dictionary with the minified version of the embeddings
                                 of the vec or the whole embeddings object (Word2Vec).
@@ -179,7 +149,7 @@ def load_embeddings(load_from_pickle=True):
     return embeddings_voc, embeddings_vec
 
 
-def load_dataset(load_from_pickle=True):
+def load_dataset(load_from_pickle=True, custom_preprocess=False, minified=True):
     """
     Loads and returns the Dataset as a DataFrame. The returned Dataframe will be proccesed.
 
@@ -216,18 +186,9 @@ def load_dataset(load_from_pickle=True):
         datasets["test"].insert(2, "post", list(tests_posts))
 
         return (
-            preprocess_full_dataset(datasets["train"]),
-            preprocess_full_dataset(datasets["test"]),
+            custom_twitter_preprocess(datasets["train"], custom_preprocess),
+            custom_twitter_preprocess(datasets["test"], custom_preprocess),
         )
-
-    # assert (
-    #     tags_categories == "__all__"
-    #     or isinstance(tags_categories, list)
-    #     or isinstance(tags_categories, tuple)
-    # ), (
-    #     "Argument <tags_categories> should be a type of 'list' or 'tuple' or a string with explicit value '__all__'."
-    #     "Instead it got the value {}".format(tags_categories)
-    # )
 
     train_pickle_path = os.path.join(DATA_DIR, TRAIN_PICKLE_FILENAME)
     test_pickle_path = os.path.join(DATA_DIR, TEST_PICKLE_FILENAME)
@@ -248,6 +209,14 @@ def load_dataset(load_from_pickle=True):
         train_df, test_df = load_dataset_and_preprocess()
         train_df.to_pickle(train_pickle_path)
         test_df.to_pickle(test_pickle_path)
+
+    if minified:
+        train_df, dropout_data = train_test_split(
+            train_df,
+            test_size=0.4,
+            random_state=1596,
+            stratify=train_df["label"],
+        )
 
     return train_df, test_df
 
@@ -277,6 +246,16 @@ def preprocess_data(input_data, label_field, text_field, **kwargs):
     ), "Fields <label_field>, <text_field> cannot be None or empty"
 
     cv_split_dev = kwargs.get("cv_split_dev", 0.2)
+
+    # Calculating Initial weights
+    classes_counts = (
+        input_data[label_field].value_counts().where(lambda cls: cls > 0).dropna()
+    )
+    total_entries = sum(classes_counts)
+    initial_weights = {}
+    for label, cls_entries in zip(classes_counts.index, classes_counts):
+        class_num = int(label.split("__label__")[1])
+        initial_weights[class_num] = np.round((1 / cls_entries) * total_entries/2, 4)
 
     train, dev_and_test = train_test_split(
         input_data,
@@ -316,6 +295,7 @@ def preprocess_data(input_data, label_field, text_field, **kwargs):
         "y_train_dev": y_train_dev,
         "y_test": y_test,
         "words_index": tokenizer.word_index,
+        "class_weight": initial_weights,
     }
 
 

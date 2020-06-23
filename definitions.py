@@ -14,7 +14,7 @@ DATA_DIR = join(ROOT_DIR, 'data')
 if not exists(DATA_DIR):
     makedirs(DATA_DIR)
 
-NOTEBOOKS_DIR = join(ROOT_DIR, 'notebookss')
+NOTEBOOKS_DIR = join(ROOT_DIR, 'notebooks')
 if not exists(NOTEBOOKS_DIR):
     makedirs(NOTEBOOKS_DIR)
 
@@ -35,7 +35,16 @@ FLAIR_EMDG_DIR = join(DATA_DIR, "flair_emdg_dir")
 if not exists(FLAIR_EMDG_DIR):
     makedirs(FLAIR_EMDG_DIR)
 
+ML_CLASSIFIERS_DIR = join(DATA_DIR, "")
+
 # NOTEBOOK Level folders
 TALOS_DIR = join(NOTEBOOKS_DIR, 'talos_logs')
 if not exists(TALOS_DIR):
     makedirs(TALOS_DIR)
+
+# FLAIR OUTPUT_DIR
+FLAIR_PREDICTION_OUTPUTS = join(FLAIR_OUTPUT_DIR, "flair_predictions")
+if not exists(FLAIR_PREDICTION_OUTPUTS):
+    makedirs(FLAIR_PREDICTION_OUTPUTS)
+
+#

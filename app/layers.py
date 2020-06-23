@@ -3,6 +3,7 @@ from keras import initializers, regularizers, constraints
 from keras.layers.core import Layer
 import numpy as np
 
+
 def dot_product(x, kernel):
     """
     Wrapper for dot product operation, in order to be compatible with both
@@ -12,22 +13,26 @@ def dot_product(x, kernel):
         kernel (): weights
     Returns:
     """
-    if K.backend() == 'tensorflow':
+    if K.backend() == "tensorflow":
         return K.squeeze(K.dot(x, K.expand_dims(kernel)), axis=-1)
     else:
         return K.dot(x, kernel)
 
 
 class LinearAttention(Layer):
-    def __init__(self,
-                 kernel_regularizer=None, bias_regularizer=None,
-                 W_constraint=None, b_constraint=None,
-                 bias=True,
-                 return_attention=False,
-                 **kwargs):
+    def __init__(
+        self,
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        W_constraint=None,
+        b_constraint=None,
+        bias=True,
+        return_attention=False,
+        **kwargs
+    ):
 
         self.supports_masking = True
-        self.init = initializers.get('glorot_uniform')
+        self.init = initializers.get("glorot_uniform")
 
         self.W_regularizer = regularizers.get(kernel_regularizer)
         self.b_regularizer = regularizers.get(bias_regularizer)
@@ -37,22 +42,27 @@ class LinearAttention(Layer):
 
         self.bias = bias
         self.return_attention = return_attention
-        super(LinearAttention, self).__init__(**kwargs)
+
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         assert len(input_shape) == 3
 
-        self.W = self.add_weight((input_shape[-1],),
-                                 initializer=self.init,
-                                 name='{}_W'.format(self.name),
-                                 regularizer=self.W_regularizer,
-                                 constraint=self.W_constraint)
+        self.W = self.add_weight(
+            shape=(input_shape[-1],),
+            initializer=self.init,
+            name="{}_W".format(self.name),
+            regularizer=self.W_regularizer,
+            constraint=self.W_constraint,
+        )
         if self.bias:
-            self.b = self.add_weight((1,),
-                                     initializer='zero',
-                                     name='{}_b'.format(self.name),
-                                     regularizer=self.b_regularizer,
-                                     constraint=self.b_constraint)
+            self.b = self.add_weight(
+                shape=(1,),
+                initializer="zero",
+                name="{}_b".format(self.name),
+                regularizer=self.b_regularizer,
+                constraint=self.b_constraint,
+            )
         else:
             self.b = None
 
@@ -87,22 +97,27 @@ class LinearAttention(Layer):
 
     def compute_output_shape(self, input_shape):
         if self.return_attention:
-            return [(input_shape[0], input_shape[-1]),
-                    (input_shape[0], input_shape[1])]
+            return [(input_shape[0], input_shape[-1]), (input_shape[0], input_shape[1])]
         else:
             return input_shape[0], input_shape[-1]
 
 
 class DeepAttention(Layer):
-    def __init__(self,
-                 kernel_regularizer=None, u_regularizer=None, bias_regularizer=None,
-                 W_constraint=None, u_constraint=None, b_constraint=None,
-                 bias=True,
-                 return_attention=False,
-                 **kwargs):
+    def __init__(
+        self,
+        kernel_regularizer=None,
+        u_regularizer=None,
+        bias_regularizer=None,
+        W_constraint=None,
+        u_constraint=None,
+        b_constraint=None,
+        bias=True,
+        return_attention=False,
+        **kwargs
+    ):
 
         self.supports_masking = True
-        self.init = initializers.get('glorot_uniform')
+        self.init = initializers.get("glorot_uniform")
 
         self.W_regularizer = regularizers.get(kernel_regularizer)
         self.u_regularizer = regularizers.get(u_regularizer)
@@ -116,39 +131,47 @@ class DeepAttention(Layer):
 
         self.bias = bias
         self.return_attention = return_attention
-        super(DeepAttention, self).__init__(**kwargs)
+
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         assert len(input_shape) == 3
 
-        self.W = self.add_weight((input_shape[-1], input_shape[-1],),
-                                 initializer=self.init,
-                                 name='{}_W'.format(self.name),
-                                 regularizer=self.W_regularizer,
-                                 constraint=self.W_constraint)
+        self.W = self.add_weight(
+            shape=(input_shape[-1], input_shape[-1],),
+            initializer=self.init,
+            name=f"{self.name}_W",
+            regularizer=self.W_regularizer,
+            constraint=self.W_constraint,
+        )
         if self.bias:
-            self.b1 = self.add_weight((input_shape[-1],),
-                                      initializer='zero',
-                                      name='{}_b1'.format(self.name),
-                                      regularizer=self.b1_regularizer,
-                                      constraint=self.b1_constraint)
-            self.b2 = self.add_weight((1,),
-                                      initializer='zero',
-                                      name='{}_b2'.format(self.name),
-                                      regularizer=self.b2_regularizer,
-                                      constraint=self.b2_constraint)
+            self.b1 = self.add_weight(
+                shape=(input_shape[-1],),
+                initializer="zero",
+                name=f"{self.name}_b1",
+                regularizer=self.b1_regularizer,
+                constraint=self.b1_constraint,
+            )
+            self.b2 = self.add_weight(
+                shape=(1,),
+                initializer="zero",
+                name=f"{self.name}_b2",
+                regularizer=self.b2_regularizer,
+                constraint=self.b2_constraint,
+            )
         else:
             self.b1 = None
             self.b2 = None
 
-        self.u = self.add_weight((input_shape[-1],),
-                                 initializer=self.init,
-                                 name='{}_u'.format(self.name),
-                                 regularizer=self.u_regularizer,
-                                 constraint=self.u_constraint)
+        self.u = self.add_weight(
+            shape=(input_shape[-1],),
+            initializer=self.init,
+            name="{}_u".format(self.name),
+            regularizer=self.u_regularizer,
+            constraint=self.u_constraint,
+        )
 
         self.built = True
-
 
     def compute_mask(self, inputs, mask=None):
         # do not pass the mask to the next layers
@@ -185,7 +208,6 @@ class DeepAttention(Layer):
 
     def compute_output_shape(self, input_shape):
         if self.return_attention:
-            return [(input_shape[0], input_shape[-1]),
-                    (input_shape[0], input_shape[1])]
+            return [(input_shape[0], input_shape[-1]), (input_shape[0], input_shape[1])]
         else:
             return input_shape[0], input_shape[-1]
