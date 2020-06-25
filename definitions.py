@@ -23,6 +23,10 @@ if not exists(MODELS_DIR):
     makedirs(MODELS_DIR)
 
 # DATA Level folders
+ML_CLASSIFIERS_PICKLE_DIR = join(DATA_DIR, "ml_classifiers_pickle_dir")
+if not exists(ML_CLASSIFIERS_PICKLE_DIR):
+    makedirs(ML_CLASSIFIERS_PICKLE_DIR)
+
 FLAIR_DATA_DIR = join(DATA_DIR, "flair_data_dir")
 if not exists(FLAIR_DATA_DIR):
     makedirs(FLAIR_DATA_DIR)
@@ -35,7 +39,9 @@ FLAIR_EMDG_DIR = join(DATA_DIR, "flair_emdg_dir")
 if not exists(FLAIR_EMDG_DIR):
     makedirs(FLAIR_EMDG_DIR)
 
-ML_CLASSIFIERS_DIR = join(DATA_DIR, "")
+ML_CLASSIFIERS_DIR = join(DATA_DIR, "ml_classifiers_output_dir")
+if not exists(ML_CLASSIFIERS_DIR):
+    makedirs(ML_CLASSIFIERS_DIR)
 
 # NOTEBOOK Level folders
 TALOS_DIR = join(NOTEBOOKS_DIR, 'talos_logs')

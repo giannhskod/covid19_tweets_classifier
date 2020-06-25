@@ -23,132 +23,6 @@ from definitions import MAX_SEQUENCE_LENGTH, MAX_WORDS, DATA_DIR
 logger = logging.getLogger(__name__)
 
 
-def load_bi_gru_model(x_train, y_train, x_train_dev, y_train_dev, params):
-    """
-    The callback method that will be used from the Talos API in order to
-    generate a configurable Keras RNN Model with Bidirection GRUs.
-    :return (tuple): A tuple with the history object of the model train and the ,
-                     generated Keras model itself.
-    """
-    inputs = Input((MAX_SEQUENCE_LENGTH,))
-    EMBEDDING_DIM = params.get("embedding_dim")
-    GRU_SIZE = params.get("gru_size", 200)
-    DENSE = params.get("dense", 300)
-    N_CLASSES = y_train.shape[1]
-    embeddings_matrix_path = os.path.join(DATA_DIR, params["embeddings_matrix_path"])
-    class_weight = params.get("class_weight")
-
-    with open(embeddings_matrix_path, "rb") as embeddings_matrix_pickle:
-        embeddings_matrix = pickle.load(embeddings_matrix_pickle)
-    visualize_process = params.get("visualize_process", False)
-    visualize_process = (
-        visualize_process
-        if isinstance(visualize_process, bool)
-        else visualize_process == "True"
-    )
-    with_early_stoping = params.get("with_early_stoping", True)
-    with_early_stoping = (
-        with_early_stoping
-        if isinstance(with_early_stoping, bool)
-        else with_early_stoping == "True"
-    )
-    multistack_run = params.get("multistack_run", False)
-    multistack_run = (
-        multistack_run if isinstance(multistack_run, bool) else multistack_run == "True"
-    )
-
-    # Apply default Callback methods
-    if with_early_stoping:
-        stopper = EarlyStopping(
-            monitor=params.get("early_stopping_config__monitor", "val_f1"),
-            min_delta=params.get("early_stopping_config__min_delta", 0),
-            patience=params.get("early_stopping_config__patience", 5),
-            mode=params.get("early_stopping_config__mode", "auto"),
-        )
-        default_callbacks = [stopper]
-    else:
-        default_callbacks = []
-
-    # Apply extra monitoring Callback methods
-    if visualize_process:
-        checkpoint = ModelCheckpoint(
-            params["model_type"],
-            monitor="val_accuracy",
-            verbose=1,
-            save_best_only=True,
-            mode="max",
-        )
-
-        checkpoint2 = ModelCheckpoint(
-            params["model_type"],
-            monitor="val_f1",
-            verbose=1,
-            save_best_only=True,
-            mode="max",
-        )
-
-        extra_callbacks = [checkpoint, TQDMNotebookCallback(), checkpoint2]
-    else:
-        extra_callbacks = []
-
-    # Add an embedding layer with 0.2 dropout probability
-    embeddings = Embedding(
-        MAX_WORDS + 2,
-        EMBEDDING_DIM,
-        weights=[embeddings_matrix],
-        input_length=MAX_SEQUENCE_LENGTH,
-        mask_zero=True,
-        trainable=False,
-    )(inputs)
-    drop_emb = Dropout(params["embeddings_dropout"])(embeddings)
-
-    # add a bidirectional gru layer with variational (recurrent) dropout
-    bi_gru = Bidirectional(
-        GRU(GRU_SIZE, return_sequences=True, recurrent_dropout=params["var_dropout"])
-    )(drop_emb)
-    if multistack_run:
-        # In Case of multistack  RNN
-        deep_attention_entry = GRU(
-            GRU_SIZE, return_sequences=True, recurrent_dropout=params["var_dropout"]
-        )(bi_gru)
-    else:
-        deep_attention_entry = bi_gru
-
-    # add a deep self attention layer
-    x, attn = DeepAttention(return_attention=True)(deep_attention_entry)
-
-    # add a hidden MLP layer
-    drop = Dropout(params["mlp_dropout"])(x)
-    out = Dense(DENSE, activation=params["rnn_activation"])(x)
-
-    # add the output MLP layer
-    out = Dense(N_CLASSES, activation=params["mlp_activation"])(out)
-    model = Model(inputs, out)
-
-    if visualize_process:
-        print(model.summary())
-
-    model.compile(
-        loss="categorical_crossentropy",
-        optimizer=params["optimizer"],
-        metrics=[precision, recall, f1, accuracy, "categorical_accuracy"],
-    )
-
-    history = model.fit(
-        x_train,
-        y_train,
-        batch_size=params.get("batch_size", 32),
-        epochs=params.get("epochs", 10),
-        verbose=0,
-        callbacks=default_callbacks + extra_callbacks,
-        validation_data=(x_train_dev, y_train_dev),
-        class_weight=class_weight,
-        shuffle=True,
-    )
-
-    return history, model
-
-
 def load_bi_lstm_model(x_train, y_train, x_train_dev, y_train_dev, params):
     """
     The callback method that will be used from the Talos API in order to
@@ -256,30 +130,10 @@ def load_bi_lstm_model(x_train, y_train, x_train_dev, y_train_dev, params):
         print(model.summary())
 
     model.compile(
-        loss=[focal_loss()],
+        loss=['categorical_crossentropy'],
         optimizer=params["optimizer"],
-        metrics=[precision, recall, f1, accuracy, focal_loss(), "categorical_accuracy"],
+        metrics=[precision, recall, f1, accuracy, "categorical_accuracy"],
     )
-    batch_size = params.get("batch_size", 32)
-    epochs = params.get("epochs", 10)
-
-    # training_generator, steps_per_epoch = balanced_batch_generator(
-    #     x_train, y_train, batch_size=batch_size, random_state=42,
-    #     sample_weight=class_weight, sampler=SMOTEENN(random_state=42)
-    # )
-    # print(f"Steps per epoch", steps_per_epoch)
-    #
-    # history = model.fit_generator(
-    #     generator=training_generator,
-    #     epochs=epochs,
-    #     steps_per_epoch=steps_per_epoch,
-    #     verbose=0,
-    #     callbacks=default_callbacks + extra_callbacks,
-    #     validation_data=(x_train_dev, y_train_dev),
-    #     # class_weight=class_weight,
-    #     # use_multiprocessing=True,
-    #     shuffle=True,
-    # )
 
     history = model.fit(
         x_train,
