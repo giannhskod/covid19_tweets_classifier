@@ -235,3 +235,5 @@ data/*
 .idea/
 *.pickle
 *_model
+notebooks/talos_logs/*
+notebooks/talos_logs_bilstm_test/*
