@@ -95,7 +95,7 @@ pipreqs==0.4.10
 pluggy==0.13.1
 prometheus-client==0.7.1
 prompt-toolkit==3.0.5
-protobuf==3.12.3
+protobuf==3.15.0
 ptyprocess==0.6.0
 py==1.8.1
 pyasn1==0.4.8
